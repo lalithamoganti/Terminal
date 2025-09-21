@@ -1,6 +1,5 @@
-psutil==5.9.6
-colorama==0.4.6
-prompt-toolkit==3.0.43
-openai==1.3.0
-flask==3.0.0
-gunicorn==21.2.0
+psutil
+colorama
+prompt-toolkit
+openai
+flask

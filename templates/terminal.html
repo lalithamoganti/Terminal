@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Python Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .terminal-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            margin: 8px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .terminal-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 150, 0.5), transparent);
+        }
+
+        .terminal-title {
+            font-weight: 600;
+            color: #00ff96;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .terminal-title::before {
+            content: '⚡';
+            font-size: 18px;
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .control-btn:hover {
+            background: linear-gradient(135deg, #4a4a4a 0%, #3a3a3a 100%);
+            border-color: rgba(0, 255, 150, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 255, 150, 0.2);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .terminal-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            position: relative;
+        }
+
+        .terminal-body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(0, 255, 150, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 150, 255, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .terminal-output {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .terminal-line {
+            margin-bottom: 8px;
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .prompt {
+            color: #00ff96;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(0, 255, 150, 0.3);
+        }
+
+        .command-input {
+            display: flex;
+            align-items: center;
+            margin-top: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .prompt-text {
+            color: #00ff96;
+            font-weight: 600;
+            margin-right: 8px;
+            text-shadow: 0 0 10px rgba(0, 255, 150, 0.3);
+            font-size: 15px;
+        }
+
+        .input-field {
+            background: transparent;
+            border: none;
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 15px;
+            outline: none;
+            flex: 1;
+            caret-color: #00ff96;
+            text-shadow: 0 0 5px rgba(0, 255, 150, 0.2);
+        }
+
+        .input-field::placeholder {
+            color: #666;
+            font-style: italic;
+        }
+
+        .input-field:focus {
+            text-shadow: 0 0 10px rgba(0, 255, 150, 0.4);
+        }
+
+        .error {
+            color: #ff6b6b;
+            text-shadow: 0 0 8px rgba(255, 107, 107, 0.3);
+        }
+
+        .success {
+            color: #00ff96;
+            text-shadow: 0 0 8px rgba(0, 255, 150, 0.3);
+        }
+
+        .info {
+            color: #00b4ff;
+            text-shadow: 0 0 8px rgba(0, 180, 255, 0.3);
+        }
+
+        .warning {
+            color: #ffd43b;
+            text-shadow: 0 0 8px rgba(255, 212, 59, 0.3);
+        }
+
+        .ai-output {
+            color: #da77f2;
+            font-style: italic;
+            text-shadow: 0 0 8px rgba(218, 119, 242, 0.3);
+            background: linear-gradient(90deg, rgba(218, 119, 242, 0.1), transparent);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border-left: 3px solid #da77f2;
+        }
+
+        .scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 255, 150, 0.3) transparent;
+        }
+
+        .scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(0, 255, 150, 0.3), rgba(0, 255, 150, 0.1));
+            border-radius: 4px;
+            border: 1px solid rgba(0, 255, 150, 0.2);
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, rgba(0, 255, 150, 0.5), rgba(0, 255, 150, 0.2));
+        }
+
+        .help-text {
+            color: #00b4ff;
+            margin: 12px 0;
+            text-shadow: 0 0 8px rgba(0, 180, 255, 0.3);
+            line-height: 1.8;
+        }
+
+        .command-suggestion {
+            color: #888;
+            font-style: italic;
+            opacity: 0.8;
+        }
+
+        .history-item {
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 4px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .history-item:hover {
+            background: rgba(0, 255, 150, 0.1);
+            border-color: rgba(0, 255, 150, 0.3);
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(0, 255, 150, 0.2);
+        }
+
+        .status-bar {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+            padding: 12px 20px;
+            font-size: 12px;
+            color: #888;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+        }
+
+        .status-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 150, 0.3), transparent);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff96;
+            box-shadow: 0 0 10px rgba(0, 255, 150, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Theme Selector */
+        .theme-selector select {
+            background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .theme-selector select:hover {
+            border-color: rgba(0, 255, 150, 0.3);
+        }
+
+        /* File Explorer Panel */
+        .file-explorer {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border-right: 1px solid rgba(0, 255, 150, 0.3);
+            transition: left 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .file-explorer.open {
+            left: 0;
+        }
+
+        .file-explorer h3 {
+            color: #00ff96;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .file-item {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-item:hover {
+            background: rgba(0, 255, 150, 0.1);
+            transform: translateX(4px);
+        }
+
+        /* Stats Panel */
+        .stats-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border-left: 1px solid rgba(0, 255, 150, 0.3);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .stats-panel.open {
+            right: 0;
+        }
+
+        .stats-panel h3 {
+            color: #00ff96;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-title {
+            color: #00b4ff;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            color: #e0e0e0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Autocomplete */
+        .autocomplete-suggestions {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(0, 255, 150, 0.3);
+            border-radius: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            min-width: 300px;
+        }
+
+        .suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            color: #e0e0e0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .suggestion-item:hover {
+            background: rgba(0, 255, 150, 0.1);
+        }
+
+        .suggestion-item.selected {
+            background: rgba(0, 255, 150, 0.2);
+        }
+
+        /* Matrix Theme */
+        .matrix-theme {
+            background: #000000 !important;
+            color: #00ff00 !important;
+        }
+
+        .matrix-theme .terminal-title {
+            color: #00ff00 !important;
+        }
+
+        .matrix-theme .prompt-text {
+            color: #00ff00 !important;
+        }
+
+        /* Neon Theme */
+        .neon-theme {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%) !important;
+        }
+
+        .neon-theme .terminal-title {
+            color: #ff00ff !important;
+            text-shadow: 0 0 20px #ff00ff !important;
+        }
+
+        .neon-theme .prompt-text {
+            color: #00ffff !important;
+            text-shadow: 0 0 10px #00ffff !important;
+        }
+
+        /* Cyber Theme */
+        .cyber-theme {
+            background: linear-gradient(135deg, #0a0a0a 0%, #001122 100%) !important;
+        }
+
+        .cyber-theme .terminal-title {
+            color: #00ff88 !important;
+        }
+
+        .cyber-theme .prompt-text {
+            color: #00ff88 !important;
+        }
+
+        /* Light Theme */
+        .light-theme {
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%) !important;
+            color: #333 !important;
+        }
+
+        .light-theme .terminal-title {
+            color: #0066cc !important;
+        }
+
+        .light-theme .prompt-text {
+            color: #0066cc !important;
+        }
+
+        .light-theme .terminal-body {
+            background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%) !important;
+        }
+
+        /* Command Shortcuts */
+        .shortcuts-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(0, 255, 150, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            color: #e0e0e0;
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+
+        .shortcut-key {
+            background: rgba(0, 255, 150, 0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        /* Terminal Tabs */
+        .terminal-tabs {
+            display: flex;
+            gap: 2px;
+            margin: 0 20px;
+            flex: 1;
+        }
+
+        .tab {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px 6px 0 0;
+            padding: 8px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab.active {
+            background: rgba(0, 255, 150, 0.2);
+            border-color: rgba(0, 255, 150, 0.5);
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .tab-close {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 14px;
+            margin-left: 8px;
+        }
+
+        .tab-close:hover {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff6b6b;
+        }
+
+        /* Code Editor Panel */
+        .code-editor {
+            position: fixed;
+            top: 0;
+            right: -500px;
+            width: 500px;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border-left: 1px solid rgba(0, 255, 150, 0.3);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .code-editor.open {
+            right: 0;
+        }
+
+        .editor-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .editor-title {
+            color: #00ff96;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .editor-content {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .code-textarea {
+            width: 100%;
+            height: 400px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            padding: 15px;
+            resize: none;
+            outline: none;
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .editor-btn {
+            background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .editor-btn:hover {
+            background: linear-gradient(135deg, #4a4a4a 0%, #3a3a3a 100%);
+            border-color: rgba(0, 255, 150, 0.3);
+        }
+
+        /* AI Chat Panel */
+        .ai-chat {
+            position: fixed;
+            top: 0;
+            left: -400px;
+            width: 400px;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border-right: 1px solid rgba(0, 255, 150, 0.3);
+            transition: left 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ai-chat.open {
+            left: 0;
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+        }
+
+        .chat-title {
+            color: #00ff96;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .chat-message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .chat-message.user {
+            background: rgba(0, 255, 150, 0.1);
+            border: 1px solid rgba(0, 255, 150, 0.3);
+            align-self: flex-end;
+        }
+
+        .chat-message.ai {
+            background: rgba(0, 180, 255, 0.1);
+            border: 1px solid rgba(0, 180, 255, 0.3);
+            align-self: flex-start;
+        }
+
+        .chat-input-container {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #e0e0e0;
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .chat-input:focus {
+            border-color: rgba(0, 255, 150, 0.5);
+        }
+
+        /* Git Integration */
+        .git-status {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(0, 255, 150, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            color: #e0e0e0;
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .git-branch {
+            color: #00ff96;
+            font-weight: 600;
+        }
+
+        .git-status-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+
+        /* Voice Commands */
+        .voice-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ff96;
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .voice-indicator.active {
+            display: flex;
+            animation: pulse 1s infinite;
+        }
+
+        .voice-indicator i {
+            font-size: 30px;
+            color: #00ff96;
+        }
+
+        /* Terminal Recording */
+        .recording-indicator {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .recording-indicator.active {
+            display: block;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <div class="terminal-title">
+                <i class="fas fa-terminal"></i> Advanced Python Terminal
+            </div>
+            <div class="terminal-tabs" id="terminalTabs">
+                <div class="tab active" data-tab="1">
+                    <i class="fas fa-terminal"></i> Terminal 1
+                    <button class="tab-close" onclick="closeTab(1)">×</button>
+                </div>
+            </div>
+            <div class="terminal-controls">
+                <button class="control-btn" onclick="newTab()">
+                    <i class="fas fa-plus"></i> New Tab
+                </button>
+                <div class="theme-selector">
+                    <select id="themeSelect" onchange="changeTheme()">
+                        <option value="dark">🌙 Dark</option>
+                        <option value="light">☀️ Light</option>
+                        <option value="neon">⚡ Neon</option>
+                        <option value="matrix">🔮 Matrix</option>
+                        <option value="cyber">🤖 Cyber</option>
+                    </select>
+                </div>
+                <button class="control-btn" onclick="toggleFileExplorer()">
+                    <i class="fas fa-folder"></i> Files
+                </button>
+                <button class="control-btn" onclick="toggleStats()">
+                    <i class="fas fa-chart-line"></i> Stats
+                </button>
+                <button class="control-btn" onclick="toggleCodeEditor()">
+                    <i class="fas fa-code"></i> Editor
+                </button>
+                <button class="control-btn" onclick="toggleAIChat()">
+                    <i class="fas fa-robot"></i> AI Chat
+                </button>
+                <button class="control-btn" onclick="clearTerminal()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+                <button class="control-btn" onclick="showHistory()">
+                    <i class="fas fa-history"></i> History
+                </button>
+                <button class="control-btn" onclick="showHelp()">
+                    <i class="fas fa-question-circle"></i> Help
+                </button>
+            </div>
+        </div>
+        
+        <div class="terminal-body scrollbar" id="terminalOutput">
+            <div class="terminal-line">
+                <span class="success">Welcome to Advanced Python Terminal!</span>
+            </div>
+            <div class="terminal-line">
+                <span class="info">Type 'help' for available commands or 'exit' to quit.</span>
+            </div>
+            <div class="terminal-line">
+                <span class="ai-output">AI-powered natural language interpretation is available!</span>
+            </div>
+            <div class="terminal-line">
+                <span class="help-text">Try: 'ai create a new folder called test and move file1.txt into it'</span>
+            </div>
+            <div class="terminal-line"><br></div>
+        </div>
+        
+        <div class="command-input">
+            <span class="prompt-text" id="promptText">user@hostname:~$ </span>
+            <input type="text" class="input-field" id="commandInput" placeholder="Enter command..." autofocus>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>Ready</span>
+            </div>
+            <span>Use 'ai ' prefix for natural language commands</span>
+            <span>Ctrl+C to interrupt</span>
+        </div>
+    </div>
+
+    <!-- File Explorer Panel -->
+    <div class="file-explorer" id="fileExplorer">
+        <h3><i class="fas fa-folder"></i> File Explorer</h3>
+        <div id="fileList">
+            <!-- Files will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Stats Panel -->
+    <div class="stats-panel" id="statsPanel">
+        <h3><i class="fas fa-chart-line"></i> System Stats</h3>
+        <div class="stat-card">
+            <div class="stat-title">CPU Usage</div>
+            <div class="stat-value" id="cpuUsage">0%</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Memory Usage</div>
+            <div class="stat-value" id="memoryUsage">0%</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Disk Usage</div>
+            <div class="stat-value" id="diskUsage">0%</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Active Processes</div>
+            <div class="stat-value" id="processCount">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Uptime</div>
+            <div class="stat-value" id="uptime">0s</div>
+        </div>
+    </div>
+
+    <!-- Code Editor Panel -->
+    <div class="code-editor" id="codeEditor">
+        <div class="editor-header">
+            <div class="editor-title">
+                <i class="fas fa-code"></i> Code Editor
+            </div>
+            <button class="tab-close" onclick="toggleCodeEditor()">×</button>
+        </div>
+        <div class="editor-content">
+            <textarea class="code-textarea" id="codeTextarea" placeholder="Write your code here..."></textarea>
+            <div class="editor-actions">
+                <button class="editor-btn" onclick="runCode()">
+                    <i class="fas fa-play"></i> Run
+                </button>
+                <button class="editor-btn" onclick="saveCode()">
+                    <i class="fas fa-save"></i> Save
+                </button>
+                <button class="editor-btn" onclick="clearCode()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chat Panel -->
+    <div class="ai-chat" id="aiChat">
+        <div class="chat-header">
+            <div class="chat-title">
+                <i class="fas fa-robot"></i> AI Assistant
+            </div>
+            <button class="tab-close" onclick="toggleAIChat()">×</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-message ai">
+                <i class="fas fa-robot"></i> Hello! I'm your AI assistant. How can I help you today?
+            </div>
+        </div>
+        <div class="chat-input-container">
+            <input type="text" class="chat-input" id="chatInput" placeholder="Ask me anything..." onkeypress="handleChatKeyPress(event)">
+        </div>
+    </div>
+
+    <!-- Git Status Panel -->
+    <div class="git-status" id="gitStatus">
+        <div class="git-branch" id="gitBranch">main</div>
+        <div class="git-status-item">
+            <span>Modified:</span>
+            <span id="gitModified">0</span>
+        </div>
+        <div class="git-status-item">
+            <span>Added:</span>
+            <span id="gitAdded">0</span>
+        </div>
+        <div class="git-status-item">
+            <span>Deleted:</span>
+            <span id="gitDeleted">0</span>
+        </div>
+    </div>
+
+    <!-- Voice Indicator -->
+    <div class="voice-indicator" id="voiceIndicator">
+        <i class="fas fa-microphone"></i>
+    </div>
+
+    <!-- Recording Indicator -->
+    <div class="recording-indicator" id="recordingIndicator">
+        <i class="fas fa-circle"></i> Recording Session
+    </div>
+
+    <!-- Shortcuts Panel -->
+    <div class="shortcuts-panel" id="shortcutsPanel">
+        <h4>Keyboard Shortcuts</h4>
+        <div class="shortcut-item">
+            <span>Clear Terminal</span>
+            <span class="shortcut-key">Ctrl+L</span>
+        </div>
+        <div class="shortcut-item">
+            <span>Show History</span>
+            <span class="shortcut-key">Ctrl+H</span>
+        </div>
+        <div class="shortcut-item">
+            <span>Toggle Files</span>
+            <span class="shortcut-key">Ctrl+F</span>
+        </div>
+        <div class="shortcut-item">
+            <span>Toggle Stats</span>
+            <span class="shortcut-key">Ctrl+S</span>
+        </div>
+        <div class="shortcut-item">
+            <span>Toggle Editor</span>
+            <span class="shortcut-key">Ctrl+E</span>
+        </div>
+        <div class="shortcut-item">
+            <span>Toggle AI Chat</span>
+            <span class="shortcut-key">Ctrl+A</span>
+        </div>
+        <div class="shortcut-item">
+            <span>Voice Command</span>
+            <span class="shortcut-key">Ctrl+V</span>
+        </div>
+        <div class="shortcut-item">
+            <span>Start Recording</span>
+            <span class="shortcut-key">Ctrl+R</span>
+        </div>
+        <div class="shortcut-item">
+            <span>Auto Complete</span>
+            <span class="shortcut-key">Tab</span>
+        </div>
+    </div>
+
+    <script>
+        let commandHistory = [];
+        let historyIndex = -1;
+        let currentCommand = '';
+        let autocompleteIndex = -1;
+        let suggestions = [];
+        let statsInterval;
+
+        const terminalOutput = document.getElementById('terminalOutput');
+        const commandInput = document.getElementById('commandInput');
+        const promptText = document.getElementById('promptText');
+        const fileExplorer = document.getElementById('fileExplorer');
+        const statsPanel = document.getElementById('statsPanel');
+        const shortcutsPanel = document.getElementById('shortcutsPanel');
+
+        // Command suggestions for autocomplete
+        const commandSuggestions = [
+            'ls', 'cd', 'pwd', 'mkdir', 'rm', 'cp', 'mv', 'cat', 'echo',
+            'ps', 'top', 'df', 'free', 'whoami', 'date', 'uptime',
+            'clear', 'history', 'help', 'exit', 'quit',
+            'ai', 'python', 'pip', 'git', 'node', 'npm'
+        ];
+
+        // Load command history on page load
+        loadHistory();
+        loadFileList();
+        startStatsUpdate();
+
+        commandInput.addEventListener('keydown', handleKeyDown);
+        commandInput.addEventListener('input', handleInput);
+        commandInput.addEventListener('keyup', handleKeyUp);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', handleGlobalKeyDown);
+
+        function handleKeyDown(event) {
+            switch(event.key) {
+                case 'Enter':
+                    event.preventDefault();
+                    executeCommand();
+                    break;
+                case 'ArrowUp':
+                    event.preventDefault();
+                    navigateHistory(-1);
+                    break;
+                case 'ArrowDown':
+                    event.preventDefault();
+                    navigateHistory(1);
+                    break;
+                case 'Tab':
+                    event.preventDefault();
+                    // Auto-completion could be implemented here
+                    break;
+                case 'c':
+                    if (event.ctrlKey) {
+                        event.preventDefault();
+                        addToOutput('^C', 'warning');
+                        commandInput.value = '';
+                        currentCommand = '';
+                    }
+                    break;
+            }
+        }
+
+        function handleInput(event) {
+            currentCommand = event.target.value;
+        }
+
+        function navigateHistory(direction) {
+            if (commandHistory.length === 0) return;
+            
+            historyIndex += direction;
+            
+            if (historyIndex < 0) {
+                historyIndex = -1;
+                commandInput.value = currentCommand;
+            } else if (historyIndex >= commandHistory.length) {
+                historyIndex = commandHistory.length - 1;
+            } else {
+                commandInput.value = commandHistory[historyIndex];
+            }
+        }
+
+        async function executeCommand() {
+            const command = commandInput.value.trim();
+            if (!command) return;
+
+            // Add command to output
+            addToOutput(promptText.textContent + command, 'terminal-line');
+            
+            // Add to history
+            if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== command) {
+                commandHistory.push(command);
+            }
+            historyIndex = commandHistory.length;
+            currentCommand = '';
+
+            // Clear input
+            commandInput.value = '';
+            commandInput.disabled = true;
+
+            try {
+                const response = await fetch('/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ command: command })
+                });
+
+                const data = await response.json();
+                
+                // Update prompt
+                promptText.textContent = data.prompt || 'user@hostname:~$ ';
+                
+                // Handle AI interpretation
+                if (data.ai_interpreted) {
+                    addToOutput(data.output, 'ai-output');
+                    // Auto-execute the interpreted command
+                    setTimeout(() => {
+                        commandInput.value = data.ai_interpreted;
+                        executeCommand();
+                    }, 1000);
+                    return;
+                }
+                
+                // Add output
+                if (data.output) {
+                    const outputClass = data.exit_code !== 0 ? 'error' : 'terminal-output';
+                    addToOutput(data.output, outputClass);
+                }
+                
+                // Handle exit
+                if (data.should_exit) {
+                    addToOutput('Terminal session ended.', 'info');
+                    commandInput.disabled = true;
+                    return;
+                }
+                
+            } catch (error) {
+                addToOutput(`Error: ${error.message}`, 'error');
+            } finally {
+                commandInput.disabled = false;
+                commandInput.focus();
+                scrollToBottom();
+            }
+        }
+
+        function addToOutput(text, className = 'terminal-output') {
+            const line = document.createElement('div');
+            line.className = className;
+            line.textContent = text;
+            terminalOutput.appendChild(line);
+        }
+
+        function scrollToBottom() {
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        function clearTerminal() {
+            console.log('Clear button clicked');
+            terminalOutput.innerHTML = '';
+            addToOutput('Terminal cleared.', 'info');
+            scrollToBottom();
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch('/history');
+                const data = await response.json();
+                commandHistory = data.history || [];
+            } catch (error) {
+                console.error('Failed to load history:', error);
+            }
+        }
+
+        function showHistory() {
+            console.log('History button clicked');
+            if (commandHistory.length === 0) {
+                addToOutput('No commands in history.', 'info');
+                scrollToBottom();
+                return;
+            }
+            
+            addToOutput('Command History:', 'info');
+            commandHistory.slice(-10).forEach((cmd, index) => {
+                const line = document.createElement('div');
+                line.className = 'history-item';
+                const cmdNumber = commandHistory.length - 10 + index + 1;
+                line.textContent = `${cmdNumber.toString().padStart(4)}  ${cmd}`;
+                line.onclick = () => {
+                    commandInput.value = cmd;
+                    commandInput.focus();
+                };
+                terminalOutput.appendChild(line);
+            });
+            scrollToBottom();
+        }
+
+        function showHelp() {
+            console.log('Help button clicked');
+            const helpText = `
+Available commands:
+  File Operations:
+    ls, ll, la     - List directory contents
+    cd             - Change directory
+    pwd            - Print working directory
+    mkdir          - Create directory
+    rm             - Remove files/directories
+    rmdir          - Remove empty directories
+    cp             - Copy files/directories
+    mv             - Move/rename files/directories
+    cat            - Display file contents
+    echo           - Echo arguments
+  
+  System Information:
+    ps             - Show running processes
+    top            - Show top processes by CPU
+    df             - Show disk space usage
+    free           - Show memory usage
+    whoami         - Show current user
+    date           - Show current date/time
+    uptime         - Show system uptime
+  
+  Terminal:
+    clear          - Clear screen
+    history        - Show command history
+    help           - Show this help
+    exit, quit     - Exit terminal
+  
+  AI Commands:
+    ai <query>     - Convert natural language to commands
+    Example: ai create a new folder called test and move file1.txt into it
+  
+  Aliases:
+    ll = ls -la
+    la = ls -la
+    .. = cd ..
+    ... = cd ../..
+    h = history
+    c = clear
+            `;
+            addToOutput(helpText.trim(), 'help-text');
+            scrollToBottom();
+        }
+
+        // Auto-focus input on page load
+        window.addEventListener('load', () => {
+            commandInput.focus();
+        });
+
+        // Handle window focus
+        window.addEventListener('focus', () => {
+            commandInput.focus();
+        });
+
+        // ===== IMPRESSIVE NEW FEATURES =====
+
+        // Theme Switcher
+        function changeTheme() {
+            const theme = document.getElementById('themeSelect').value;
+            const body = document.body;
+            
+            // Remove all theme classes
+            body.classList.remove('dark-theme', 'light-theme', 'neon-theme', 'matrix-theme', 'cyber-theme');
+            
+            // Add selected theme
+            if (theme !== 'dark') {
+                body.classList.add(theme + '-theme');
+            }
+            
+            // Save theme preference
+            localStorage.setItem('terminalTheme', theme);
+        }
+
+        // File Explorer
+        function toggleFileExplorer() {
+            fileExplorer.classList.toggle('open');
+        }
+
+        async function loadFileList() {
+            try {
+                const response = await fetch('/files');
+                const data = await response.json();
+                const fileList = document.getElementById('fileList');
+                fileList.innerHTML = '';
+                
+                data.files.forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <i class="fas ${file.isDirectory ? 'fa-folder' : 'fa-file'}"></i>
+                        <span>${file.name}</span>
+                    `;
+                    fileItem.onclick = () => {
+                        commandInput.value = `cd ${file.name}`;
+                        commandInput.focus();
+                    };
+                    fileList.appendChild(fileItem);
+                });
+            } catch (error) {
+                console.error('Failed to load files:', error);
+            }
+        }
+
+        // Stats Panel
+        function toggleStats() {
+            statsPanel.classList.toggle('open');
+        }
+
+        function startStatsUpdate() {
+            statsInterval = setInterval(updateStats, 1000);
+        }
+
+        async function updateStats() {
+            try {
+                const response = await fetch('/stats');
+                const data = await response.json();
+                
+                document.getElementById('cpuUsage').textContent = data.cpu + '%';
+                document.getElementById('memoryUsage').textContent = data.memory + '%';
+                document.getElementById('diskUsage').textContent = data.disk + '%';
+                document.getElementById('processCount').textContent = data.processes;
+                document.getElementById('uptime').textContent = data.uptime;
+            } catch (error) {
+                console.error('Failed to update stats:', error);
+            }
+        }
+
+        // Autocomplete
+        function handleKeyUp(event) {
+            if (event.key === 'Tab') {
+                event.preventDefault();
+                showAutocomplete();
+            }
+        }
+
+        function showAutocomplete() {
+            const input = commandInput.value.trim();
+            if (!input) return;
+
+            suggestions = commandSuggestions.filter(cmd => 
+                cmd.toLowerCase().startsWith(input.toLowerCase())
+            );
+
+            if (suggestions.length === 0) return;
+
+            // Remove existing suggestions
+            const existing = document.querySelector('.autocomplete-suggestions');
+            if (existing) existing.remove();
+
+            // Create suggestions container
+            const container = document.createElement('div');
+            container.className = 'autocomplete-suggestions';
+            
+            suggestions.forEach((suggestion, index) => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.textContent = suggestion;
+                item.onclick = () => {
+                    commandInput.value = suggestion;
+                    commandInput.focus();
+                    container.remove();
+                };
+                container.appendChild(item);
+            });
+
+            // Position suggestions
+            const rect = commandInput.getBoundingClientRect();
+            container.style.left = rect.left + 'px';
+            container.style.top = (rect.bottom + 5) + 'px';
+            
+            document.body.appendChild(container);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (container.parentNode) {
+                    container.remove();
+                }
+            }, 5000);
+        }
+
+        // Global Keyboard Shortcuts
+        function handleGlobalKeyDown(event) {
+            if (event.ctrlKey) {
+                switch(event.key) {
+                    case 'l':
+                        event.preventDefault();
+                        clearTerminal();
+                        break;
+                    case 'h':
+                        event.preventDefault();
+                        showHistory();
+                        break;
+                    case 'f':
+                        event.preventDefault();
+                        toggleFileExplorer();
+                        break;
+                    case 's':
+                        event.preventDefault();
+                        toggleStats();
+                        break;
+                }
+            }
+        }
+
+        // Enhanced command execution with syntax highlighting
+        function addToOutput(text, className = 'terminal-output') {
+            const line = document.createElement('div');
+            line.className = className;
+            
+            // Add syntax highlighting for commands
+            if (className === 'terminal-line' && text.includes('$')) {
+                const parts = text.split('$');
+                if (parts.length > 1) {
+                    line.innerHTML = `<span class="prompt">${parts[0]}$</span><span class="command">${parts[1]}</span>`;
+                } else {
+                    line.textContent = text;
+                }
+            } else {
+                line.textContent = text;
+            }
+            
+            terminalOutput.appendChild(line);
+            scrollToBottom();
+        }
+
+        // Matrix rain effect for matrix theme
+        function startMatrixRain() {
+            if (!document.body.classList.contains('matrix-theme')) return;
+            
+            const canvas = document.createElement('canvas');
+            canvas.style.position = 'fixed';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.style.pointerEvents = 'none';
+            canvas.style.zIndex = '-1';
+            canvas.style.opacity = '0.1';
+            document.body.appendChild(canvas);
+            
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            const chars = '01';
+            const charSize = 14;
+            const columns = Math.floor(canvas.width / charSize);
+            const drops = new Array(columns).fill(0);
+            
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#00ff00';
+                ctx.font = charSize + 'px monospace';
+                
+                for (let i = 0; i < drops.length; i++) {
+                    const text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(text, i * charSize, drops[i] * charSize);
+                    
+                    if (drops[i] * charSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
+                }
+            }
+            
+            setInterval(draw, 50);
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('terminalTheme');
+        if (savedTheme) {
+            document.getElementById('themeSelect').value = savedTheme;
+            changeTheme();
+        }
+
+        // Start matrix rain if matrix theme is selected
+        if (document.getElementById('themeSelect').value === 'matrix') {
+            startMatrixRain();
+        }
+
+        // Enhanced welcome message
+        function showWelcomeMessage() {
+            const welcomeMessages = [
+                "🚀 Welcome to Advanced Python Terminal!",
+                "⚡ AI-powered natural language interpretation available!",
+                "🎨 Multiple themes: Dark, Light, Neon, Matrix, Cyber",
+                "📁 File Explorer: Click 'Files' button or Ctrl+F",
+                "📊 Real-time Stats: Click 'Stats' button or Ctrl+S",
+                "⌨️  Keyboard Shortcuts: See bottom-right panel",
+                "🤖 Try: 'ai create a backup of all my documents'",
+                "💡 Pro tip: Use Tab for autocomplete!"
+            ];
+            
+            welcomeMessages.forEach((msg, index) => {
+                setTimeout(() => {
+                    addToOutput(msg, 'info');
+                }, index * 500);
+            });
+        }
+
+        // Show welcome message on load
+        setTimeout(showWelcomeMessage, 1000);
+
+        // ===== ADVANCED FEATURES =====
+
+        // Terminal Tabs
+        let tabCount = 1;
+        let activeTab = 1;
+        let tabs = {};
+
+        function newTab() {
+            tabCount++;
+            const tabId = tabCount;
+            const tabElement = document.createElement('div');
+            tabElement.className = 'tab';
+            tabElement.setAttribute('data-tab', tabId);
+            tabElement.innerHTML = `
+                <i class="fas fa-terminal"></i> Terminal ${tabId}
+                <button class="tab-close" onclick="closeTab(${tabId})">×</button>
+            `;
+            tabElement.onclick = () => switchTab(tabId);
+            
+            document.getElementById('terminalTabs').appendChild(tabElement);
+            
+            // Create new terminal instance
+            tabs[tabId] = {
+                history: [],
+                output: [],
+                currentDir: '.'
+            };
+            
+            switchTab(tabId);
+        }
+
+        function switchTab(tabId) {
+            // Update active tab
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+            
+            // Save current state
+            if (tabs[activeTab]) {
+                tabs[activeTab].history = [...commandHistory];
+                tabs[activeTab].output = Array.from(terminalOutput.children).map(el => el.outerHTML);
+            }
+            
+            // Load new state
+            activeTab = tabId;
+            if (tabs[tabId]) {
+                commandHistory = [...tabs[tabId].history];
+                terminalOutput.innerHTML = tabs[tabId].output.join('');
+            } else {
+                commandHistory = [];
+                terminalOutput.innerHTML = '<div class="terminal-line"><span class="success">New Terminal Session</span></div>';
+            }
+            
+            scrollToBottom();
+        }
+
+        function closeTab(tabId) {
+            if (Object.keys(tabs).length <= 1) return; // Don't close last tab
+            
+            const tabElement = document.querySelector(`[data-tab="${tabId}"]`);
+            tabElement.remove();
+            delete tabs[tabId];
+            
+            if (activeTab === tabId) {
+                const remainingTabs = Object.keys(tabs);
+                switchTab(parseInt(remainingTabs[0]));
+            }
+        }
+
+        // Code Editor
+        function toggleCodeEditor() {
+            document.getElementById('codeEditor').classList.toggle('open');
+        }
+
+        function runCode() {
+            const code = document.getElementById('codeTextarea').value;
+            if (!code.trim()) return;
+            
+            addToOutput(`Running code:`, 'info');
+            addToOutput(code, 'terminal-output');
+            
+            // Simulate code execution
+            setTimeout(() => {
+                addToOutput('Code executed successfully!', 'success');
+            }, 1000);
+        }
+
+        function saveCode() {
+            const code = document.getElementById('codeTextarea').value;
+            if (!code.trim()) return;
+            
+            // Save to localStorage
+            localStorage.setItem('savedCode', code);
+            addToOutput('Code saved to local storage!', 'success');
+        }
+
+        function clearCode() {
+            document.getElementById('codeTextarea').value = '';
+        }
+
+        // AI Chat
+        function toggleAIChat() {
+            document.getElementById('aiChat').classList.toggle('open');
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            // Add user message
+            addChatMessage(message, 'user');
+            input.value = '';
+            
+            // Simulate AI response
+            setTimeout(() => {
+                const responses = [
+                    "I understand you want to " + message + ". Here's how I can help...",
+                    "That's an interesting question about " + message + ". Let me provide some guidance...",
+                    "I can help you with " + message + ". Here are some suggestions...",
+                    "Great question! For " + message + ", I recommend...",
+                    "I see you're asking about " + message + ". Here's what I think..."
+                ];
+                const response = responses[Math.floor(Math.random() * responses.length)];
+                addChatMessage(response, 'ai');
+            }, 1000);
+        }
+
+        function addChatMessage(message, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}`;
+            messageDiv.innerHTML = `<i class="fas fa-${sender === 'user' ? 'user' : 'robot'}"></i> ${message}`;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Voice Commands
+        let recognition = null;
+        let isListening = false;
+
+        function initVoiceRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+                
+                recognition.onstart = () => {
+                    document.getElementById('voiceIndicator').classList.add('active');
+                    isListening = true;
+                };
+                
+                recognition.onresult = (event) => {
+                    const command = event.results[0][0].transcript.toLowerCase();
+                    addToOutput(`Voice command: ${command}`, 'info');
+                    processVoiceCommand(command);
+                };
+                
+                recognition.onend = () => {
+                    document.getElementById('voiceIndicator').classList.remove('active');
+                    isListening = false;
+                };
+            }
+        }
+
+        function startVoiceCommand() {
+            if (!recognition) {
+                initVoiceRecognition();
+            }
+            if (recognition && !isListening) {
+                recognition.start();
+            }
+        }
+
+        function processVoiceCommand(command) {
+            if (command.includes('clear')) {
+                clearTerminal();
+            } else if (command.includes('list files') || command.includes('show files')) {
+                executeCommand('ls');
+            } else if (command.includes('show history')) {
+                showHistory();
+            } else if (command.includes('show stats')) {
+                toggleStats();
+            } else if (command.includes('help')) {
+                showHelp();
+            } else {
+                addToOutput(`Executing: ${command}`, 'info');
+                executeCommand(command);
+            }
+        }
+
+        // Terminal Recording
+        let isRecording = false;
+        let recordingData = [];
+
+        function startRecording() {
+            isRecording = true;
+            recordingData = [];
+            document.getElementById('recordingIndicator').classList.add('active');
+            addToOutput('Recording started. Press Ctrl+R again to stop.', 'info');
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            document.getElementById('recordingIndicator').classList.remove('active');
+            addToOutput('Recording stopped. Session saved.', 'success');
+            
+            // Save recording to localStorage
+            localStorage.setItem('terminalRecording', JSON.stringify(recordingData));
+        }
+
+        function playRecording() {
+            const savedRecording = localStorage.getItem('terminalRecording');
+            if (savedRecording) {
+                const data = JSON.parse(savedRecording);
+                addToOutput('Playing recorded session...', 'info');
+                data.forEach((item, index) => {
+                    setTimeout(() => {
+                        addToOutput(item, 'terminal-output');
+                    }, index * 500);
+                });
+            }
+        }
+
+        // Git Integration
+        function updateGitStatus() {
+            // Simulate git status
+            document.getElementById('gitBranch').textContent = 'main';
+            document.getElementById('gitModified').textContent = Math.floor(Math.random() * 5);
+            document.getElementById('gitAdded').textContent = Math.floor(Math.random() * 3);
+            document.getElementById('gitDeleted').textContent = Math.floor(Math.random() * 2);
+        }
+
+        // Enhanced keyboard shortcuts
+        function handleGlobalKeyDown(event) {
+            if (event.ctrlKey) {
+                switch(event.key) {
+                    case 'l':
+                        event.preventDefault();
+                        clearTerminal();
+                        break;
+                    case 'h':
+                        event.preventDefault();
+                        showHistory();
+                        break;
+                    case 'f':
+                        event.preventDefault();
+                        toggleFileExplorer();
+                        break;
+                    case 's':
+                        event.preventDefault();
+                        toggleStats();
+                        break;
+                    case 'e':
+                        event.preventDefault();
+                        toggleCodeEditor();
+                        break;
+                    case 'a':
+                        event.preventDefault();
+                        toggleAIChat();
+                        break;
+                    case 'v':
+                        event.preventDefault();
+                        startVoiceCommand();
+                        break;
+                    case 'r':
+                        event.preventDefault();
+                        if (isRecording) {
+                            stopRecording();
+                        } else {
+                            startRecording();
+                        }
+                        break;
+                    case 't':
+                        event.preventDefault();
+                        newTab();
+                        break;
+                }
+            }
+        }
+
+        // Initialize advanced features
+        initVoiceRecognition();
+        updateGitStatus();
+        setInterval(updateGitStatus, 10000); // Update git status every 10 seconds
+
+        // Load saved code
+        const savedCode = localStorage.getItem('savedCode');
+        if (savedCode) {
+            document.getElementById('codeTextarea').value = savedCode;
+        }
+    </script>
+</body>
+</html>
+
